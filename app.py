@@ -35,7 +35,7 @@ def ler_arquivo(path):
 
 # ---------------- FUNÇÃO PARA CONSULTAR A IA ----------------
 def perguntar_para_huggingface(texto, pergunta):
-    API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
+    API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
     headers = {
         "Authorization": f"Bearer {st.secrets['huggingface']['api_key']}"
     }
