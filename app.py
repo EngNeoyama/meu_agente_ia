@@ -35,17 +35,12 @@ def ler_arquivo(path):
 
 # ---------------- FUNÇÃO PARA CONSULTAR A IA ----------------
 def perguntar_para_huggingface(texto, pergunta):
-    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-small"
     headers = {
         "Authorization": f"Bearer {st.secrets['huggingface']['api_key']}"
     }
 
-    prompt = f"""Baseado no seguinte conteúdo:
-
-{texto[:3000]}
-
-Responda: {pergunta}
-"""
+    prompt = f"Answer the question based on the context.\nContext: {texto[:1000]}\nQuestion: {pergunta}\nAnswer:"
 
     payload = {
         "inputs": prompt
@@ -62,17 +57,20 @@ Responda: {pergunta}
 
         resposta_json = response.json()
 
+        if isinstance(resposta_json, dict) and "error" in resposta_json:
+            return f"❌ Erro da IA: {resposta_json['error']}"
+
         if isinstance(resposta_json, list) and "generated_text" in resposta_json[0]:
             return resposta_json[0]["generated_text"].strip()
-        elif isinstance(resposta_json, dict) and "generated_text" in resposta_json:
-            return resposta_json["generated_text"].strip()
-        elif "error" in resposta_json:
-            return f"❌ Erro da IA: {resposta_json['error']}"
-        else:
-            return "❌ A resposta da IA não pôde ser interpretada corretamente."
+
+        elif isinstance(resposta_json, list) and "output" in resposta_json[0]:
+            return resposta_json[0]["output"].strip()
+
+        return "✅ Pergunta enviada, mas não houve resposta compreensível."
 
     except Exception as e:
-        return f"❌ Erro inesperado ao conectar à Hugging Face: {str(e)}"
+        return f"❌ Erro inesperado: {str(e)}"
+
 
 # ---------------- INTERFACE PRINCIPAL ----------------
 if arquivo_escolhido:
