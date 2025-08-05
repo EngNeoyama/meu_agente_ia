@@ -9,7 +9,7 @@ from utils.load_excel import extract_text_from_excel
 # ---------------- CONFIGURAÇÃO ----------------
 st.set_page_config(page_title="Agente IA com Hugging Face", layout="wide")
 st.title("🤖 Agente de IA para Análise de Arquivos")
-st.markdown("Escolha um arquivo e pergunte qualquer coisa sobre o conteúdo!")
+st.markdown("Escolha um arquivo e faça perguntas sobre seu conteúdo!")
 
 # ---------------- LISTA DE ARQUIVOS ----------------
 data_dir = "data"
@@ -33,12 +33,13 @@ def ler_arquivo(path):
     else:
         return None
 
-# ---------------- FUNÇÃO PARA CONSULTAR HUGGING FACE ----------------
+# ---------------- FUNÇÃO PARA CONSULTAR A IA ----------------
 def perguntar_para_huggingface(texto, pergunta):
     API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
     headers = {
         "Authorization": f"Bearer {st.secrets['huggingface']['api_key']}"
     }
+
     prompt = f"""Você é um assistente que responde com base no conteúdo de um documento.
 Documento:
 \"\"\"
@@ -56,20 +57,28 @@ Resposta:"""
         }
     }
 
-    resposta = requests.post(API_URL, headers=headers, json=payload)
-
     try:
-        resultado = resposta.json()
-        if isinstance(resultado, list) and "generated_text" in resultado[0]:
-            return resultado[0]["generated_text"].split("Resposta:")[-1].strip()
-        elif "error" in resultado:
-            return f"❌ Erro da API: {resultado['error']}"
-        else:
-            return "❌ Resposta não compreendida."
-    except Exception as e:
-        return f"❌ Erro inesperado: {e}"
+        response = requests.post(API_URL, headers=headers, json=payload)
 
-# ---------------- EXECUÇÃO ----------------
+        if response.status_code != 200:
+            return f"❌ Erro da API: {response.status_code} - {response.reason}"
+
+        if not response.content:
+            return "❌ A resposta da IA veio vazia. O modelo pode estar carregando ou indisponível no momento."
+
+        resposta_json = response.json()
+
+        if isinstance(resposta_json, list) and "generated_text" in resposta_json[0]:
+            return resposta_json[0]["generated_text"].split("Resposta:")[-1].strip()
+        elif "error" in resposta_json:
+            return f"❌ Erro da IA: {resposta_json['error']}"
+        else:
+            return "❌ A resposta da IA não pôde ser interpretada corretamente."
+
+    except Exception as e:
+        return f"❌ Erro inesperado ao conectar à Hugging Face: {str(e)}"
+
+# ---------------- INTERFACE PRINCIPAL ----------------
 if arquivo_escolhido:
     caminho = os.path.join(data_dir, arquivo_escolhido)
     texto = ler_arquivo(caminho)
