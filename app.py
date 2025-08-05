@@ -35,26 +35,20 @@ def ler_arquivo(path):
 
 # ---------------- FUNÇÃO PARA CONSULTAR A IA ----------------
 def perguntar_para_huggingface(texto, pergunta):
-    API_URL = "https://api-inference.huggingface.co/models/HuggingFaceH4/zephyr-7b-beta"
+    API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
     headers = {
         "Authorization": f"Bearer {st.secrets['huggingface']['api_key']}"
     }
 
-    prompt = f"""Você é um assistente que responde com base no conteúdo de um documento.
-Documento:
-\"\"\"
-{texto[:3000]}
-\"\"\"
+    prompt = f"""Baseado no seguinte conteúdo:
 
-Pergunta: {pergunta}
-Resposta:"""
+{texto[:3000]}
+
+Responda: {pergunta}
+"""
 
     payload = {
-        "inputs": prompt,
-        "parameters": {
-            "temperature": 0.3,
-            "max_new_tokens": 200
-        }
+        "inputs": prompt
     }
 
     try:
@@ -69,7 +63,9 @@ Resposta:"""
         resposta_json = response.json()
 
         if isinstance(resposta_json, list) and "generated_text" in resposta_json[0]:
-            return resposta_json[0]["generated_text"].split("Resposta:")[-1].strip()
+            return resposta_json[0]["generated_text"].strip()
+        elif isinstance(resposta_json, dict) and "generated_text" in resposta_json:
+            return resposta_json["generated_text"].strip()
         elif "error" in resposta_json:
             return f"❌ Erro da IA: {resposta_json['error']}"
         else:
